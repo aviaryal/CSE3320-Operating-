@@ -74,6 +74,16 @@ int comparedate(const void *a, const void *b)
 	info *d=(info *) b;
 	return(strcmp(c->modif,d->modif));
 }
+
+//Check if input is digit
+int checkno(char *cmd,int length)
+{
+	int i=0;
+	for(i=0;i<length;i++)
+		if(!isdigit(cmd[i]))
+		 	return 0;
+	return 1;
+}
 //Function to print array
 void print_names(info filedir[MAXFILE],int n,int isfile)
 {
@@ -201,20 +211,40 @@ int main(int argc, char *argv[])
 		print_names(fileinfo,fileno,1);
 		closedir( d );
 		
-		printf("Operation:\nE Edit\nR Run\nC Change Directory\nS Sort Directory listing\nQ Quit\n");
+		printf("Operation:\nD Display\nE Edit\nR Run\nC Change Directory\nS Sort Directory listing\nM to Move to directory \nV Remove file\nQ Quit\n");
 		c = getchar( ); getchar( );
-		c=tolower(c);
+		c = tolower(c);
 		switch (c) 
 		{
         	case 'q': 
         		exit(0); /* quit */
+        	case 'd':
+        		printf("Display what? Input fileno or name\n");
+        		scanf(" %s",s);
+        		getchar( );
+        		strcpy(cmd,"more ");
+        		if(checkno(s,strlen(s)))
+				{
+					if(atoi(s) <0 || atoi(s)>fileno)
+						printf("Wrong input\n");
+					else
+						strcpy(s,fileinfo[atoi(s)].name);
+				}
+				if(isdir(s)==2)
+				{
+					strcat(cmd,s);
+					system(cmd);
+				}
+				else
+					printf("Wrong Input\n");
+				break;
 			case 'e': 
 				printf( "Edit what? Input fileno or name:" );
 				scanf( "%s", s );
 				getchar( );
 				strcpy( cmd, "pico ");
 				// Check if the command is number
-				if(atoi(s))
+				if(checkno(s,strlen(s)))
 				{
 					if(atoi(s) <0 || atoi(s)>fileno)
 						printf("Wrong input\n");
@@ -235,8 +265,7 @@ int main(int argc, char *argv[])
 				printf( "Change To? Input directory name,path or dirno:" );
 				scanf( "%s", cmd );
 				getchar();
-				if(atoi(cmd))
-				{
+				if(checkno(cmd,strlen(cmd)))				{
 					if(atoi(cmd) <0 || atoi(cmd)>dirno)
 						printf("Wrong input\n");
 					else
@@ -252,7 +281,8 @@ int main(int argc, char *argv[])
 			case 's':
 				printf("Enter 'D to sort by date' or 'S' to sort by size \n");
 				k=getchar( );getchar();
-				if(k=='D' || k=='d')
+				k=tolower(k);
+				if(k=='d')
 				{
 					//strcpy(cmd,"ls -S");
 					//system(cmd);
@@ -263,7 +293,7 @@ int main(int argc, char *argv[])
 					print_names(dirinfo,dirno,0);
 					print_names(fileinfo,fileno,1);
 				}
-				else if(k=='S' || k=='s')
+				else if(k=='s')
 				{
 					//strcpy(cmd,"ls -hlt");
 					//system(cmd);
@@ -276,6 +306,44 @@ int main(int argc, char *argv[])
 				else
 					printf("Wrong input\n");
 				break;
+			case 'v':
+				printf("Enter file no or file name to remvoe\n");
+				scanf(" %s", s);
+				getchar( );
+				strcpy(cmd,"rm ");
+				if(checkno(s,strlen(s)))
+				{
+					if(atoi(s) <0 || atoi(s)>fileno)
+						printf("Wrong input\n");
+					else
+						strcat(cmd,fileinfo[atoi(s)].name);
+				}
+				else
+					strcat(cmd,s);
+				system(cmd);
+				break;
+			case 'm':
+				printf("Move what? Fileno or filename:\n");
+				scanf(" %s", s);
+				strcpy(cmd, "mv ");
+				if(checkno(s,strlen(s)))
+				{
+					if(atoi(s) <0 || atoi(s)>fileno)
+						printf("Wrong input\n");
+					else
+						strcat(cmd,fileinfo[atoi(s)].name);
+				}
+				else
+					strcat(cmd,s);
+				printf("To where? Input name or destination\n");
+				scanf("%s",s);
+				getchar( );
+				strcat(cmd," ");
+				strcat(cmd,s);
+				system(cmd);
+
+			
+
 			default:
 				printf("Wrong Input\n");
 		}
