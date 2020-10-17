@@ -13,13 +13,21 @@ typedef struct ranges
 	int start;
 	int end;
 }ranges;
+typedef struct data
+{
+	char detail[500];
+	double latitude;
+}data;
 int readline(FILE *fp)
 {
 	int count=0;
 	int buffer_size=500;
 	char buffer[buffer_size];
+	int maxsize=0;;
 	while(fgets(buffer,buffer_size-1,fp)!=NULL)
 		count++;
+	
+	printf("Max string %d\n",maxsize );
 	return count;
 }
 void* create_shared_memory(size_t size) {
@@ -35,7 +43,7 @@ void* create_shared_memory(size_t size) {
   // but the manpage for `mmap` explains their purpose.
   return mmap(NULL, size, protection, visibility, -1, 0);
 }
-void readlatitude(FILE *fp,double *latitude)
+void readlatitude(FILE *fp,data *earthquake)
 {
 	fseek(fp,0,0);
 	int index=0;
@@ -45,55 +53,60 @@ void readlatitude(FILE *fp,double *latitude)
 	char *token;
 	while(fgets(buffer,buffer_size-1,fp))
 	{
+		strcpy(earthquake[index].detail,buffer);
 		token=strtok(buffer,",");
 		token=strtok(NULL,",");
-		latitude[index++]=atof(token);
+		earthquake[index++].latitude=atof(token);
 		
 	}
 
 }
 //ref:https://www.geeksforgeeks.org/bubble-sort/
-void swap(double *xp, double *yp)
+void swap(data *xp, data *yp)
 {
-	double temp=*xp;
+	data temp=*xp;
 	*xp=*yp;
 	*yp=temp;
 }
-void bubblesort(double latitude[], int start, int end)
+void bubblesort(data *earthquake, int start, int end)
 {
 	int i,j;
 	for(i=start;i<end-1;i++)
 		for(j=start;j<end-1;j++)
-			if(latitude[j]>latitude[j+1])
-				swap(&latitude[j],&latitude[j+1]);
+			if(earthquake[j].latitude>earthquake[j+1].latitude)
+				swap(&earthquake[j],&earthquake[j+1]);
 
 }
-void parray(double *latitude,int begin,int count)
+void parray(data *earthquake,int begin,int count)
 {
 	int i=begin;
 	for(i=begin;i<count;i++)
-		printf("%f  ", latitude[i] );
+		printf("%f  ", earthquake[i].latitude );
 }
 
 //ref:https://www.interviewbit.com/tutorial/merge-sort-algorithm/
 //This function merge the sorted array.
-void merge(double latitude[], int firstbegin, int firstend, int secondend)
+void merge(data *earthquake, int firstbegin, int firstend, int secondend)
 {
-	double *temp =malloc(sizeof(double)*(secondend-firstbegin));
+	data *temp =malloc(sizeof(data)*(secondend-firstbegin));
 	//double temp[secondend-firstbegin];
-		int i=firstbegin, j=firstend,k=0;
+	int i=firstbegin, j=firstend,k=0;
 	// Compare two values and put small into temp array
 	while(i<firstend && j<secondend)
 	{
-		if(latitude[i]<=latitude[j])
+		if(earthquake[i].latitude<=earthquake[j].latitude)
 		{
-			temp[k] = latitude[i];
+			//strcpy(temp[k].detail,earthquake[i].detail);
+			//temp[k].latitude = earthquake[i].latitude;
+			temp[k]=earthquake[i];
 			k++; 
 			i++;
 		}
 		else
 		 {
-			temp[k] = latitude[j];
+		 	//strcpy(temp[k].detail,earthquake[j].detail);
+			//temp[k].latitude = earthquake[j].latitude;
+			temp[k] = earthquake[j];
 			k++;
 			j++;
 		}
@@ -103,7 +116,9 @@ void merge(double latitude[], int firstbegin, int firstend, int secondend)
 	// add elements left in the first interval 
 	while(i < firstend) 
 	{
-		temp[k] = latitude[i];
+		//strcpy(temp[k].detail,earthquake[i].detail);
+		//temp[k].latitude = earthquake[i].latitude;
+		temp[k] = earthquake[i];
 		k++; 
 		i++;
 	}
@@ -111,7 +126,9 @@ void merge(double latitude[], int firstbegin, int firstend, int secondend)
 	// add elements left in the second interval 
 	while(j <secondend) 
 	{
-		temp[k] = latitude[j];
+		//strcpy(temp[k].detail,earthquake[j].detail);
+		//temp[k].latitude = earthquake[j].latitude;
+		temp[k] = earthquake[j];
 		k++;
 		j++;
 	}
@@ -119,7 +136,9 @@ void merge(double latitude[], int firstbegin, int firstend, int secondend)
 	// copy temp to original interval
 	for(i =0; i <secondend; i++)
 	{
-		latitude[i] = temp[i];
+		//earthquake[i].latitude = temp[i].latitude;
+		//strcpy(earthquake[i].detail,temp[i].detail);
+		earthquake[i]=temp[i];
 	}
 	free(temp);
 	
@@ -130,8 +149,8 @@ int main()
 	time_t begin,end;
 	int count=readline(fp)-1;
 
-	double *latitude= create_shared_memory(sizeof(double)*count);
-	readlatitude(fp,latitude);
+	data *earthquake= create_shared_memory(sizeof(data)*count);
+	readlatitude(fp,earthquake);
 	int noprocess;
 	printf("How many process you want to use: ");
 	scanf("%d",&noprocess);
@@ -165,11 +184,11 @@ int main()
 	{
 		if(noprocess==1)
 		{
-			bubblesort(latitude,range[i].start,range[i].end);
+			bubblesort(earthquake,range[i].start,range[i].end);
 		}
 		else if(fork()==0)
 		{
-			bubblesort(latitude,range[i].start,range[i].end);
+			bubblesort(earthquake,range[i].start,range[i].end);
 			//printf("\nI am child %d\n", getpid() );
 			//parray(latitude,range[i].start,range[i].end);
 			//printf("\nI am ending %d\n",getpid() );
@@ -181,8 +200,8 @@ int main()
 	for(i=0;i<noprocess;i++)
 		wait(NULL);
 	for(i=0;i<noprocess-1;i++)
-		merge(latitude,0,range[i].end,range[i+1].end);
-
+		merge(earthquake,0,range[i].end,range[i+1].end);
+	parray(earthquake,0,count);
 	end=time(NULL);
 	time_t diff= end -begin;
 	printf("Begin time: %s\n",ctime(&begin) );
